@@ -69,11 +69,12 @@ args.arch = 'InceptionV3' if args.dataset == 'moments' else 'BNInception'
 
 # Load model.
 net = TSN(num_class,
-          args.test_segments,
-          args.modality,
-          base_model=args.arch,
-          consensus_type=args.consensus_type,
-          img_feature_dim=args.img_feature_dim, print_spec=False)
+    args.test_segments,
+    args.modality,
+    base_model=args.arch,
+    consensus_type=args.consensus_type,
+    img_feature_dim=args.img_feature_dim, print_spec=False)
+
 
 weights = args.weight
 checkpoint = torch.load(weights)
@@ -103,36 +104,38 @@ transform = torchvision.transforms.Compose([
 
 for vid_file in filenames:
     
-    frame_folder = os.path.join(FRAME_ROOT,vid_file.split('./')[-1].split()[0]) #there was an extra \n
-    #print frame_folder
+    with torch.no_grad():
 
-    # Obtain video frames
-    #if args.frame_folder is not None:
-    print('Loading frames in %s'%frame_folder)
-    import glob
-    # here make sure after sorting the frame paths have the correct temporal order
-    frame_paths = sorted(glob.glob(os.path.join(frame_folder, '*.jpg')))
-    #print(frame_paths)
-    #print(os.path.join(frame_folder, '*.jpg'))
-    frames = load_frames(frame_paths)
-    #~ else:
-    #~ print('Extracting frames using ffmpeg...')
-    #~ frames = extract_frames(vid_file, args.test_segments)
+	frame_folder = os.path.join(FRAME_ROOT,vid_file.split('./')[-1].split()[0]) #there was an extra \n
+	#print frame_folder
+
+	# Obtain video frames
+	#if args.frame_folder is not None:
+	print('Loading frames in %s'%frame_folder)
+	import glob
+	# here make sure after sorting the frame paths have the correct temporal order
+	frame_paths = sorted(glob.glob(os.path.join(frame_folder, '*.jpg')))
+	#print(frame_paths)
+	#print(os.path.join(frame_folder, '*.jpg'))
+	frames = load_frames(frame_paths)
+	#~ else:
+	#~ print('Extracting frames using ffmpeg...')
+	#~ frames = extract_frames(vid_file, args.test_segments)
 
 
 
-    # Make video prediction.
-    data = transform(frames)
-    input_var = torch.autograd.Variable(data.view(-1, 3, data.size(1), data.size(2)),
+	# Make video prediction.
+	data = transform(frames)
+	input_var = torch.autograd.Variable(data.view(-1, 3, data.size(1), data.size(2)),
 					volatile=True).unsqueeze(0).cuda()
-    logits = net(input_var)
-    h_x = torch.mean(F.softmax(logits, 1), dim=0).data
-    probs, idx = h_x.sort(0, True)
+	logits = net.forward(input_var)
+	h_x = torch.mean(F.softmax(logits, 1), dim=0).data
+	probs, idx = h_x.sort(0, True)
 
-    # Output the prediction.
-    video_name = vid_file
-    print('RESULT ON ' + video_name)
-    for i in range(0, 5):
-	print('{:.3f} -> {}'.format(probs[i], categories[idx[i]]))
-
-
+	# Output the prediction.
+	video_name = vid_file
+	print('RESULT ON ' + video_name)
+	for i in range(0, 5):
+	    print('{:.3f} -> {}'.format(probs[i], categories[idx[i]]))
+	    
+	    
