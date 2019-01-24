@@ -86,7 +86,7 @@ net.cuda().eval()
 
 
 # Load splits
-with open('/data/datasets/EEG_VIDS/videos/list_test.txt', 'r') as f:
+with open('/data/datasets/EEG_VIDS/videos/list_test_2.txt', 'r') as f:
     filenames = f.readlines()
 FRAME_ROOT = '/data/datasets/EEG_VIDS/video_frames'
 
@@ -100,30 +100,22 @@ transform = torchvision.transforms.Compose([
 ])
 
 
-
+acc= 0.
 
 for vid_file in filenames:
     
     with torch.no_grad():
 
 	frame_folder = os.path.join(FRAME_ROOT,vid_file.split('./')[-1].split()[0]) #there was an extra \n
-	#print frame_folder
+	true_class = vid_file.split('/')[1]
 
 	# Obtain video frames
-	#if args.frame_folder is not None:
-	print('Loading frames in %s'%frame_folder)
+	#print('Loading frames in %s'%frame_folder)
 	import glob
 	# here make sure after sorting the frame paths have the correct temporal order
 	frame_paths = sorted(glob.glob(os.path.join(frame_folder, '*.jpg')))
-	#print(frame_paths)
-	#print(os.path.join(frame_folder, '*.jpg'))
 	frames = load_frames(frame_paths)
-	#~ else:
-	#~ print('Extracting frames using ffmpeg...')
-	#~ frames = extract_frames(vid_file, args.test_segments)
-
-
-
+	
 	# Make video prediction.
 	data = transform(frames)
 	input_var = torch.autograd.Variable(data.view(-1, 3, data.size(1), data.size(2)),
@@ -132,10 +124,14 @@ for vid_file in filenames:
 	h_x = torch.mean(F.softmax(logits, 1), dim=0).data
 	probs, idx = h_x.sort(0, True)
 
-	# Output the prediction.
-	video_name = vid_file
-	print('RESULT ON ' + video_name)
-	for i in range(0, 5):
-	    print('{:.3f} -> {}'.format(probs[i], categories[idx[i]]))
+	if true_class == categories[idx[0]]:
+	    acc+=1
+		
+	#~ # Output the prediction.
+	#~ video_name = vid_file
+	#~ print('RESULT ON ' + video_name)
+	#~ for i in range(0, 5):
+	    #~ print('{:.3f} -> {}'.format(probs[i], categories[idx[i]]))
 	    
-	    
+
+print('Accuracy = {:.3f}'.format(acc/len(filenames)))
